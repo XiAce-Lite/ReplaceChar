@@ -1,0 +1,12 @@
+{
+  "name": "ReplaceChar",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "description": "A Chrome extension to replace specific characters in the text of a webpage.",
+  "content_scripts": [{
+    "matches": ["https://ja.chordwiki.org/*"],
+    "js": [
+      "content.js"
+    ]
+  }]
+}
