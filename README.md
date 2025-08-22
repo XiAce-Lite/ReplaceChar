@@ -15,16 +15,11 @@ ChordWikiの書き方が気に入らんコード譜に対して、強制的にDO
 
 ## 例
 
-<div style="display: flex; gap: 16px; align-items: flex-start;">
-  <div>
-    <span style="font-size: 90%;">プレーン表示</span>
-    <img src="sample_images/plane.png" alt="プレーン表示" width="300px"><br>
-  </div>
-  <div>
-    <span style="font-size: 90%;">適応後の表示</span>
-    <img src="sample_images/fixed.png" alt="適応後の表示" width="300px"><br>
-  </div>
-</div>
+
+<span style="font-size: 90%;">プレーン表示</span>
+<img src="sample_images/plane.png" alt="プレーン表示" width="200px">
+<span style="font-size: 90%;">適応後の表示</span>
+<img src="sample_images/fixed.png" alt="適応後の表示" width="200px">
 
 ## 使い方
 
