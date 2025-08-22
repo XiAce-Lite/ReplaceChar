@@ -55,10 +55,16 @@ function removeEmptyWordtopSpans() {
 }
 // 指定した要素の直前の .word を探す（段落をまたいで探索）
 function findPreviousWordElement(wordtop) {
-  // まず同じ親内で直前の兄弟を探す
+  // 直前の兄弟をたどり、.wordまたは.wordtopが見つかるまで繰り返す
   let prev = wordtop.previousElementSibling;
-  if (prev && prev.classList && prev.classList.contains('word')) {
-    return prev;
+  while (prev) {
+    if (
+      prev.classList &&
+      (prev.classList.contains('word') || prev.classList.contains('wordtop'))
+    ) {
+      return prev;
+    }
+    prev = prev.previousElementSibling;
   }
 
   // 直前に見つからなければ、親を遡って <p class="line"> を探す
@@ -68,15 +74,15 @@ function findPreviousWordElement(wordtop) {
   }
   if (!parent) return null;
 
-  // 前の段落（p.line）を探す
+  // 前の段落（p.line かつ p.comment でない）を探す
   let prevP = parent.previousElementSibling;
-  while (prevP && !prevP.matches('p.line')) {
+  while (prevP && (!prevP.matches('p.line') || prevP.matches('p.comment'))) {
     prevP = prevP.previousElementSibling;
   }
   if (!prevP) return null;
 
-  // 前段落内の最後の .word を返す
-  const words = prevP.querySelectorAll('span.word');
+  // 前段落内の最後の .wordまたは.wordtop を返す
+  const words = prevP.querySelectorAll('span.word, span.wordtop');
   return words.length > 0 ? words[words.length - 1] : null;
 }
 
