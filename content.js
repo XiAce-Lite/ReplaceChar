@@ -18,6 +18,7 @@ function replaceChordSpanText() {
         span.outerHTML = `<span class="word">| </span>`;
       }
     } else {
+      //MNoto Sans フォント対応。
       span.textContent = span.textContent
         .replace(/\((?:[#b]?\d+(?:[,.][#b]?\d+)*)\)/g, match => {
           return '{' + match.slice(1, -1) + '}';
