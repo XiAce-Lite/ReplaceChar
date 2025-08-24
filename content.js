@@ -144,6 +144,28 @@ function changeChordFontAndIndent() {
   });
 }
 
-removeEmptyWordtopSpans();
-changeChordFontAndIndent();
-replaceChordSpanText();
+function replaceCharMain() {
+  removeEmptyWordtopSpans();
+  changeChordFontAndIndent();
+  replaceChordSpanText();
+}
+
+// ページロード時に有効状態なら実行
+chrome.storage.sync.get('enabled', ({ enabled }) => {
+  if (enabled !== false) {
+    replaceCharMain();
+  }
+});
+
+// enabledの変化を監視し、即時反映
+if (chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'sync' && changes.enabled) {
+      if (changes.enabled.newValue !== false) {
+        replaceCharMain();
+      } else {
+        location.reload();
+      }
+    }
+  });
+}
