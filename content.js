@@ -1,32 +1,34 @@
 // content.js
-function replaceChordSpanText() {
+
+// MNoto Sans フォント対応部分
+function replaceMNotoSansText() {
   const chordSpans = document.querySelectorAll('span.chord');
-
   chordSpans.forEach(span => {
-    // outerHTML ではなく属性・テキストで判定
-    if (
-      span.classList.contains('chord') &&
-      span.textContent.trim() === '|' &&
-      span.getAttribute('onclick') === "javascript:popupImage('/cd/|.png', event);"
-    ) {
-      const parent = span.parentNode;
-      const isFirstChild = parent && parent.firstElementChild === span;
-
-      if (isFirstChild) {
-        span.outerHTML = `<span class="wordtop">| </span>`;
-      } else {
-        span.outerHTML = `<span class="word">| </span>`;
+    // フォント指定（特殊な文字が含まれる場合）
+    const text = span.textContent.trim();
+    if (text.includes('=') || text.includes('>') || text.includes('n.c') || text.includes('N.C')) {
+      try {
+        span.style.cssText += 'font-family: sans-serif !important; font-weight: bold !important; font-size: 16px !important; color: #3273cd !important;';
+      } catch (error) {
+        console.error('Style setting failed:', error);
       }
-    } else {
-      //MNoto Sans フォント対応。
+    }
+    // MNoto Sans フォント対応
+    if (!(
+      span.classList.contains('chord') &&
+      span.textContent.trim().includes('|') &&
+      span.getAttribute('onclick') && span.getAttribute('onclick').includes('|')
+    )) {
       span.textContent = span.textContent
         .replace(/\((?:[#b]?\d+(?:[,.][#b]?\d+)*)\)/g, match => {
           return '{' + match.slice(1, -1) + '}';
         });
     }
   });
+}
 
-  // ✅ 追加処理：<p class="line"> の最初の <span> を wordtop にする
+// <p class="line"> の最初の <span> を wordtop にする処理
+function setFirstSpanToWordtop() {
   const lines = document.querySelectorAll('p.line');
   lines.forEach(p => {
     const firstSpan = Array.from(p.children).find(child => child.tagName === 'SPAN');
@@ -53,6 +55,7 @@ function removeEmptyWordtopSpans() {
     }
   });
 }
+
 // 指定した要素の直前の .word を探す（段落をまたいで探索）
 function findPreviousWordElement(wordtop) {
   // 直前の兄弟をたどり、.wordまたは.wordtopが見つかるまで繰り返す
@@ -86,53 +89,58 @@ function findPreviousWordElement(wordtop) {
   return words.length > 0 ? words[words.length - 1] : null;
 }
 
-function changeChordFontAndIndent() {
-  const chordElements = document.querySelectorAll('span.chord');
-
-  chordElements.forEach(element => {
-    const text = element.textContent.trim();
-
-    if (text.includes('=') || text.includes('>') || text.includes('n.c') || text.includes('N.C')) {
-      try {
-        element.style.cssText += 'font-family: sans-serif !important; font-weight: bold !important; font-size: 16px !important; color: #3273cd !important;';
-      } catch (error) {
-        console.error('Style setting failed:', error);
+// chord spanの|処理と wordtop整理を統合
+function processChordBarsAndWordtops() {
+  // 1. span.chordの|置換→word or wordtopに要素を変える＝歌詞の行に小節線を移行する。
+  const chordSpans = document.querySelectorAll('span.chord');
+  chordSpans.forEach(span => {
+    if (
+      span.classList.contains('chord') &&
+      span.textContent.trim().includes('|') &&
+      span.getAttribute('onclick') && span.getAttribute('onclick').includes('|')
+    ) {
+      const parent = span.parentNode;
+      const isFirstChild = parent && parent.firstElementChild === span;
+      if (isFirstChild) {
+        span.outerHTML = `<span class="wordtop">| </span>`;
+      } else {
+        span.outerHTML = `<span class="word"> | </span>`;
       }
     }
+  });
 
+  // 2. 歌詞の行に移行された小節線のスペースを調整する処理
+  const chordElements = document.querySelectorAll('span.word, span.wordtop');
+  chordElements.forEach(element => {
+    const text = element.textContent.trim();
     if (text === '|') {
       const prev = element.previousElementSibling;
-
       if (prev && prev.classList.contains('wordtop')) {
-        // wordtop の場合はテキスト追加のみ
         prev.textContent += '| ';
         element.remove();
       } else {
-        // それ以外は word に置換
         const newSpan = document.createElement('span');
         newSpan.className = 'word';
-        newSpan.textContent = '|';
+        newSpan.textContent = ' |';
         element.replaceWith(newSpan);
       }
     }
   });
 
+  // 3. 行頭にはみ出た歌詞を、前の行に移動する処理
   const wordtopElements = document.querySelectorAll('span.wordtop');
-
   wordtopElements.forEach(wordtop => {
     let cleanedText = cleanText(wordtop.textContent);
-
     if (cleanedText === '|') {
       wordtop.textContent = '| ';
       return;
     }
-
     if (cleanedText.length > 1 && cleanedText.endsWith('|') && /[^|]/.test(cleanedText) && !cleanedText.startsWith('|')) {
       let prevWord = findPreviousWordElement(wordtop);
       if (prevWord) {
         let prevText = prevWord.textContent.trim();
         if (prevText.endsWith('|') || (prevText.length === 1 && prevText === '|')) {
-          prevWord.textContent = prevText.slice(0, -1) + " " + cleanedText;
+          prevWord.textContent = prevText.slice(0, -1) + " " + cleanedText.replace("|", " |");
           console.log("Updated previous word with cleaned text:", prevWord.textContent);
         } else {
           cleanedText = cleanedText.replace("|", "");
@@ -146,8 +154,9 @@ function changeChordFontAndIndent() {
 
 function replaceCharMain() {
   removeEmptyWordtopSpans();
-  changeChordFontAndIndent();
-  replaceChordSpanText();
+  processChordBarsAndWordtops();
+  replaceMNotoSansText(); // MNoto Sans フォント対応とフォント指定
+  setFirstSpanToWordtop(); // 最後に実施
 }
 
 // ページロード時に有効状態なら実行
