@@ -14,9 +14,9 @@ function adjustWordLeftToChord() {
       next = next.nextElementSibling;
   }
   if (!next) return;
-  // テキストが空、または > と - のみ（複合・連続含む）なら対象外
+  // テキストが空、または > と - のみ（複合・連続含む）、または1文字のみなら対象外
   const trimmed = next.textContent.trim();
-  if (trimmed === '' || /^([>\-]+)$/.test(trimmed)) return;
+  if (trimmed === '' || /^([>\-]+)$/.test(trimmed) || trimmed.length === 1) return;
 
   // span.chordのテキストがコード名の場合のみ調整
   if (!chordAllowed.test(chord.textContent.trim())) return;
@@ -24,14 +24,31 @@ function adjustWordLeftToChord() {
     const chordLeft = chord.getBoundingClientRect().left;
     const wordLeft = next.getBoundingClientRect().left;
     const diff = wordLeft - chordLeft;
-    // ずれが10px以上なら、diffの半分だけ近づける
-    if (diff > 10) {
-      let shift = -diff / 2;
-      if (Math.abs(shift) > 20) {
-        shift = shift < 0 ? -8 : 8;
+    // ずれが20px以上なら、diffの半分だけ近づける。ただし連続するchord間は1.5rem(24px)以上空ける
+    if (diff > 20) {
+      console.log('Adjusting word position:', next.textContent.trim(), 'Diff:', diff);
+      const minChordGap = 24; // 1.5rem=24px想定
+      let allowShift = true;
+      let nextChord = next.nextElementSibling;
+      while (nextChord && !(nextChord.classList && nextChord.classList.contains('chord'))) {
+        nextChord = nextChord.nextElementSibling;
       }
-      const currentMargin = parseFloat(window.getComputedStyle(next).marginLeft) || 0;
-      next.style.marginLeft = (currentMargin + shift) + 'px';
+      if (nextChord) {
+        const nextChordLeft = nextChord.getBoundingClientRect().left;
+            const newWordLeft = wordLeft + (-diff * 0.75);
+        if (nextChordLeft - newWordLeft < minChordGap) {
+          allowShift = false;
+        }
+      }
+      if (allowShift) {
+            let shift = -diff * 0.75;
+        if (Math.abs(shift) > 20) {
+          console.log('Large shift adjusted to 16px:', shift);
+          shift = shift < 0 ? -16 : 16;
+        }
+        const currentMargin = parseFloat(window.getComputedStyle(next).marginLeft) || 0;
+        next.style.marginLeft = (currentMargin + shift) + 'px';
+      }
     }
   });
 }
@@ -83,6 +100,10 @@ function setFirstSpanToWordtop() {
     if (firstSpan && !firstSpan.classList.contains('wordtop')) {
       firstSpan.classList.add('wordtop');
       firstSpan.classList.remove('word'); // もし word が付いていたら削除
+      // 先頭の半角スペースを除去
+      if (typeof firstSpan.textContent === 'string') {
+        firstSpan.textContent = firstSpan.textContent.replace(/^\s+/, '');
+      }
     }
   });
 }
