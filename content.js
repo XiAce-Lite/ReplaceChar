@@ -1,14 +1,61 @@
+// コードとして成立するもの（m7-5, m9-5, D#m7-5 なども許可）
+const chordAllowed = /^[A-G](#|b)?((m|M|maj|min|sus|add|dim|aug)?[0-9]*(?:-[0-9]+)?)(?:\/[A-G](#|b)?)?(?:\([^)]+\)|\{[^}]+\})?$/i;
+// 極小フォント設定のデフォルト
+let SMALL_FONT_SIZE = 14;
+let SMALL_FONT_VALIGN = 7;
+
+// span.chordの直後のspan.word/wordtopの左位置が大きくずれている場合、近づける
+function adjustWordLeftToChord() {
+  const chordSpans = document.querySelectorAll('span.chord');
+  chordSpans.forEach(chord => {
+    // 次の兄弟要素でspan.wordまたはspan.wordtopを探す
+    let next = chord.nextElementSibling;
+    while (next && !(next.classList && (next.classList.contains('word') || next.classList.contains('wordtop')))) {
+      next = next.nextElementSibling;
+  }
+  if (!next) return;
+  // テキストが空、または > と - のみ（複合・連続含む）なら対象外
+  const trimmed = next.textContent.trim();
+  if (trimmed === '' || /^([>\-]+)$/.test(trimmed)) return;
+
+  // span.chordのテキストがコード名の場合のみ調整
+  if (!chordAllowed.test(chord.textContent.trim())) return;
+    // 位置取得
+    const chordLeft = chord.getBoundingClientRect().left;
+    const wordLeft = next.getBoundingClientRect().left;
+    const diff = wordLeft - chordLeft;
+    // ずれが10px以上なら、diffの半分だけ近づける
+    if (diff > 10) {
+      let shift = -diff / 2;
+      if (Math.abs(shift) > 20) {
+        shift = shift < 0 ? -8 : 8;
+      }
+      const currentMargin = parseFloat(window.getComputedStyle(next).marginLeft) || 0;
+      next.style.marginLeft = (currentMargin + shift) + 'px';
+    }
+  });
+}
+
+// 設定をchrome.storageから取得
+function loadSmallFontSettings(callback) {
+  chrome.storage && chrome.storage.sync.get(['smallFontSize', 'smallFontValign'], (data) => {
+    SMALL_FONT_SIZE = Number(data.smallFontSize) || 14;
+    SMALL_FONT_VALIGN = Number(data.smallFontValign) || 7;
+    if (callback) callback();
+  });
+}
 // content.js
 
 // MNoto Sans フォント対応部分
 function replaceMNotoSansText() {
   const chordSpans = document.querySelectorAll('span.chord');
   chordSpans.forEach(span => {
-    // フォント指定（特殊な文字が含まれる場合）
+    // フォント指定（特殊な記号が含まれる場合、ただしコード名は除外）
     const text = span.textContent.trim();
-    if (text.includes('=') || text.includes('>') || text.includes('≫') || text.includes('≧') || text.includes('n.c') || text.includes('N.C')) {
+    const specialSymbols = ['-', '=', '>', '≫', '≧', 'n.c', 'N.C'];
+    if (specialSymbols.some(s => text.includes(s)) && !chordAllowed.test(text)) {
       try {
-        span.style.cssText += 'font-family: sans-serif !important; color: #3273cd !important;';
+        span.style.cssText += 'font-family: "Arial Narrow", Arial, "Roboto Condensed", "Helvetica Neue Condensed" !important; color: #3273cd !important;';
       } catch (error) {
         console.error('Style setting failed:', error);
       }
@@ -95,14 +142,13 @@ function processChordBarsAndWordtops() {
   const chordSpans = document.querySelectorAll('span.chord');
   chordSpans.forEach(span => {
     const text = span.textContent.trim();
-    // コードとして成立するもの
-    const codeAllowed = /^[A-G](#|b)?((m|M|maj|min|sus|add|dim|aug)[0-9]*)?[0-9]*(?:-[0-9]+)?(?:\/[A-G](#|b)?)?(?:\([^)]+\))?$/i;
+  // codeAllowedはグローバル定義を利用
 
     // ->≧=≫ のいずれかのみで構成され、かつコード名として認識されない場合は極小フォント
-    if (/^[\-≧=≫>]+$/.test(text) && !codeAllowed.test(text)) {
-      // 極小フォント＋2px上に表示
-      span.style.setProperty('font-size', '11px', 'important');
-      span.style.setProperty('vertical-align', '5px', 'important');
+    if (/^[\-≧=≫>]+$/.test(text) && !chordAllowed.test(text)) {
+      // 極小フォント＋指定px上に表示
+      span.style.setProperty('font-size', SMALL_FONT_SIZE + 'px', 'important');
+      span.style.setProperty('vertical-align', SMALL_FONT_VALIGN + 'px', 'important');
     }
 
     if (
@@ -151,7 +197,7 @@ function processChordBarsAndWordtops() {
       if (prevWord) {
         let prevText = prevWord.textContent.trim();
         if (prevText.endsWith('|') || (prevText.length === 1 && prevText === '|')) {
-          prevWord.textContent = prevText.slice(0, -1) + " " + cleanedText.replace("|", " |");
+          prevWord.textContent = prevText.slice(0, -1) + "  " + cleanedText.replace("|", " |");
         } else {
           cleanedText = cleanedText.replace("|", "");
           prevWord.textContent += " " + cleanedText;
@@ -162,28 +208,37 @@ function processChordBarsAndWordtops() {
   });
 }
 
+
 function replaceCharMain() {
   removeEmptyWordtopSpans();
   processChordBarsAndWordtops();
   replaceMNotoSansText(); // MNoto Sans フォント対応とフォント指定
-  setFirstSpanToWordtop(); // 最後に実施
+  setFirstSpanToWordtop();
+  adjustWordLeftToChord(); // 位置調整を最後に実施
 }
 
 // ページロード時に有効状態なら実行
 chrome.storage.sync.get('enabled', ({ enabled }) => {
   if (enabled !== false) {
-    replaceCharMain();
+    loadSmallFontSettings(replaceCharMain);
   }
 });
 
-// enabledの変化を監視し、即時反映
+// enabledやフォント設定の変化を監視し、即時反映
 if (chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'sync' && changes.enabled) {
-      if (changes.enabled.newValue !== false) {
-        replaceCharMain();
-      } else {
-        location.reload();
+    if (area === 'sync') {
+      if (changes.enabled) {
+        if (changes.enabled.newValue !== false) {
+          loadSmallFontSettings(replaceCharMain);
+        } else {
+          location.reload();
+        }
+      }
+      if (changes.smallFontSize || changes.smallFontValign) {
+        loadSmallFontSettings(() => {
+          replaceCharMain();
+        });
       }
     }
   });
