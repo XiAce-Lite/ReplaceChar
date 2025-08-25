@@ -55,13 +55,15 @@
     <span class="toggle-slider"></span>
     <span class="toggle-text">拡張機能を有効化</span>
   </label>
-    <div style="margin-top: 18px;">
-      <label for="small-font-size">コード行内記号フォントサイズ(px): </label>
-      <input type="number" id="small-font-size" min="6" max="18" value="14" style="width: 60px;">
+    <div style="margin-top: 18px; padding-left: 0px; padding-top: 5px; ">
+  <label for="small-font-size" id="label-font-size-main">コード行内記号フォント調整(px) </label>
+    <div style="margin-top: 10px; padding-left: 18px; ">
+  <label for="small-font-size" id="label-font-size">サイズ: </label>
+  <input type="number" id="small-font-size" min="6" max="18" value="14" style="width: 30px; text-align: right;">
     </div>
-    <div style="margin-top: 10px;">
-      <label for="small-font-valign">コード行内フォント縦位置(px): </label>
-      <input type="number" id="small-font-valign" min="-3" max="10" value="7" style="width: 60px;">
+    <div style="margin-top: 10px; padding-left: 18px;">
+    <label for="small-font-valign" id="label-font-valign">縦位置: </label>
+  <input type="number" id="small-font-valign" min="-3" max="10" value="7" style="width: 30px; text-align: right;">
     </div>
   <script src="popup.js"></script>
 </body>
