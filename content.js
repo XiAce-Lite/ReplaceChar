@@ -142,7 +142,6 @@ function processChordBarsAndWordtops() {
   const chordSpans = document.querySelectorAll('span.chord');
   chordSpans.forEach(span => {
     const text = span.textContent.trim();
-  // codeAllowedはグローバル定義を利用
 
     // ->≧=≫ のいずれかのみで構成され、かつコード名として認識されない場合は極小フォント
     if (/^[\-≧=≫>]+$/.test(text) && !chordAllowed.test(text)) {
@@ -209,35 +208,44 @@ function processChordBarsAndWordtops() {
 }
 
 
-function replaceCharMain() {
+
+function replaceCharMain(adjustChordPos = true, mnotoEnabled = true) {
   removeEmptyWordtopSpans();
   processChordBarsAndWordtops();
-  replaceMNotoSansText(); // MNoto Sans フォント対応とフォント指定
+  if (mnotoEnabled) replaceMNotoSansText(); // MNoto Sans フォント対応とフォント指定
   setFirstSpanToWordtop();
-  adjustWordLeftToChord(); // 位置調整を最後に実施
+  if (adjustChordPos) adjustWordLeftToChord(); // 位置調整を最後に実施
 }
 
 // ページロード時に有効状態なら実行
-chrome.storage.sync.get('enabled', ({ enabled }) => {
+chrome.storage.sync.get(['enabled', 'adjustChordPos', 'mnotoEnabled'], ({ enabled, adjustChordPos, mnotoEnabled }) => {
   if (enabled !== false) {
-    loadSmallFontSettings(replaceCharMain);
+    loadSmallFontSettings(() => replaceCharMain(adjustChordPos !== false, mnotoEnabled !== false));
   }
 });
 
-// enabledやフォント設定の変化を監視し、即時反映
+// enabledやフォント設定、adjustChordPosの変化を監視し、即時反映
 if (chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'sync') {
+      let adjustChordPos, mnotoEnabled;
+      if (changes.adjustChordPos) {
+        adjustChordPos = changes.adjustChordPos.newValue !== false;
+      }
+      if (changes.mnotoEnabled) {
+        mnotoEnabled = changes.mnotoEnabled.newValue !== false;
+      }
       if (changes.enabled) {
         if (changes.enabled.newValue !== false) {
-          loadSmallFontSettings(replaceCharMain);
+          chrome.storage.sync.get(['adjustChordPos', 'mnotoEnabled'], ({ adjustChordPos, mnotoEnabled }) => {
+            loadSmallFontSettings(() => replaceCharMain(adjustChordPos !== false, mnotoEnabled !== false));
+          });
         } else {
           location.reload();
         }
-      }
-      if (changes.smallFontSize || changes.smallFontValign) {
-        loadSmallFontSettings(() => {
-          replaceCharMain();
+      } else if (changes.smallFontSize || changes.smallFontValign || changes.adjustChordPos || changes.mnotoEnabled) {
+        chrome.storage.sync.get(['adjustChordPos', 'mnotoEnabled'], ({ adjustChordPos, mnotoEnabled }) => {
+          loadSmallFontSettings(() => replaceCharMain(adjustChordPos !== false, mnotoEnabled !== false));
         });
       }
     }
