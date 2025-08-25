@@ -1,5 +1,5 @@
 // コードとして成立するもの（m7-5, m9-5, D#m7-5 なども許可）
-const chordAllowed = /^([A-G](#|b)?((m|M|maj|min|sus|add|dim|aug)?[0-9]*(?:-[0-9]+)?)(?:\/[A-G](#|b)?)?(?:\([^)]+\)|\{[^}]+\})?|N\.C)$/i;
+const chordAllowed = /^[A-G](#|b)?((m|M|maj|min|sus|add|dim|aug)?[0-9]*(?:-[0-9]+)?)(?:\/[A-G](#|b)?)?(?:\([^)]+\)|\{[^}]+\})?$/i;
 // 極小フォント設定のデフォルト
 let SMALL_FONT_SIZE = 14;
 let SMALL_FONT_VALIGN = 7;
@@ -53,6 +53,7 @@ function replaceMNotoSansText() {
     // フォント指定（特殊な記号が含まれる場合、ただしコード名は除外）
     const text = span.textContent.trim();
     const specialSymbols = ['-', '=', '>', '≫', '≧', 'n.c', 'N.C'];
+
     if (specialSymbols.some(s => text.includes(s)) && !chordAllowed.test(text)) {
       try {
         span.style.cssText += 'font-family: "Arial Narrow", Arial, "Roboto Condensed", "Helvetica Neue Condensed" !important; color: #3273cd !important;';
