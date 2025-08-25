@@ -6,9 +6,9 @@ function replaceMNotoSansText() {
   chordSpans.forEach(span => {
     // フォント指定（特殊な文字が含まれる場合）
     const text = span.textContent.trim();
-    if (text.includes('=') || text.includes('>') || text.includes('n.c') || text.includes('N.C')) {
+    if (text.includes('=') || text.includes('>') || text.includes('≫') || text.includes('≧') || text.includes('n.c') || text.includes('N.C')) {
       try {
-        span.style.cssText += 'font-family: sans-serif !important; font-weight: bold !important; font-size: 16px !important; color: #3273cd !important;';
+        span.style.cssText += 'font-family: sans-serif !important; color: #3273cd !important;';
       } catch (error) {
         console.error('Style setting failed:', error);
       }
@@ -94,9 +94,20 @@ function processChordBarsAndWordtops() {
   // 1. span.chordの|置換→word or wordtopに要素を変える＝歌詞の行に小節線を移行する。
   const chordSpans = document.querySelectorAll('span.chord');
   chordSpans.forEach(span => {
+    const text = span.textContent.trim();
+    // コードとして成立するもの
+    const codeAllowed = /^[A-G](#|b)?((m|M|maj|min|sus|add|dim|aug)[0-9]*)?[0-9]*(?:-[0-9]+)?(?:\/[A-G](#|b)?)?(?:\([^)]+\))?$/i;
+
+    // ->≧=≫ のいずれかのみで構成され、かつコード名として認識されない場合は極小フォント
+    if (/^[\-≧=≫>]+$/.test(text) && !codeAllowed.test(text)) {
+      // 極小フォント＋2px上に表示
+      span.style.setProperty('font-size', '11px', 'important');
+      span.style.setProperty('vertical-align', '5px', 'important');
+    }
+
     if (
       span.classList.contains('chord') &&
-      span.textContent.trim().includes('|') &&
+      text.includes('|') &&
       span.getAttribute('onclick') && span.getAttribute('onclick').includes('|')
     ) {
       const parent = span.parentNode;
@@ -141,7 +152,6 @@ function processChordBarsAndWordtops() {
         let prevText = prevWord.textContent.trim();
         if (prevText.endsWith('|') || (prevText.length === 1 && prevText === '|')) {
           prevWord.textContent = prevText.slice(0, -1) + " " + cleanedText.replace("|", " |");
-          console.log("Updated previous word with cleaned text:", prevWord.textContent);
         } else {
           cleanedText = cleanedText.replace("|", "");
           prevWord.textContent += " " + cleanedText;
