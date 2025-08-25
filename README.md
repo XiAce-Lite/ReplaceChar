@@ -11,16 +11,11 @@ ChordWikiの書き方が気に入らんコード譜に対して、強制的にDO
 - テンションコードが()で括られている場合、｛｝に置換します（作者は、MNoto Sansフォントを使っているので、上付きのテンション表示にしたいが為）
   - ちなみに、MNoto Sansフォントは[こちら](https://github.com/ykwe/MNoto-Sans-alpha)です。V2フォントを使用しています。
   - なお作者は、[Stylebot](https://chromewebstore.google.com/detail/oiaejidbmkiecgbjeifoejpgmdaleoha?utm_source=item-share-cb)というChrome拡張にて、見た目の調整をしとります。参考までに[こちら](stylebot_backup.json)に上げておきます。
-  - 不要な方は、content.js 内にて正規表現で対象を絞り込んでいる箇所があるので、そこを消せば良いです。
-
-    ```js
-        span.textContent = span.textContent
-          .replace(/\((?:[#b]?\d+(?:[,.][#b]?\d+)*)\)/g, match => {
-          return '{' + match.slice(1, -1) + '}';
-        });
-    ```
+  - ようは、ChordWikiだけに、MNoto Sans V2フォントが適応出来れば、手法は問いません。
+  - 要らない人向けに、トグルボタンでスイッチつけました。
 
 - コードが長い時に、歌詞の位置が右になるので、少々左に寄せます。
+  - こちらもスイッチでオンオフ選べます。左に詰めるとコード間が狭くなるケースや被るケースもあるかもですし、任意でお使いください。
 
 - コードの行に、コード以外の記号（-, =, ≫, ≧）がある場合に、フォントサイズと縦位置を調整します
   - フォントの種類については、Arial Narrowのような幅の細いフォント固定です。
@@ -28,7 +23,6 @@ ChordWikiの書き方が気に入らんコード譜に対して、強制的にDO
 - 設定用のインターフェイスなどはないので、ソース直修正して、Chrome拡張を再度読み込んで、対象のコード譜もリロードしてください。
 
 ## 例
-
 
 <table>
   <tr>
