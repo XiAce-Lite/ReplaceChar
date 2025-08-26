@@ -43,7 +43,6 @@ function adjustWordLeftToChord() {
       if (allowShift) {
             let shift = -diff * 0.75;
         if (Math.abs(shift) > 20) {
-          console.log('Large shift adjusted to 16px:', shift);
           shift = shift < 0 ? -16 : 16;
         }
         const currentMargin = parseFloat(window.getComputedStyle(next).marginLeft) || 0;
@@ -71,7 +70,10 @@ function replaceMNotoSansText() {
     const text = span.textContent.trim();
     const specialSymbols = ['-', '=', '>', '≫', '≧', 'n.c', 'N.C'];
 
-    if (specialSymbols.some(s => text.includes(s)) && !chordAllowed.test(text)) {
+    // ~が1つ以上続く場合もナローフォント
+    const onlyTildeOrSpace = /^[~\s]+$/.test(text);
+    if (onlyTildeOrSpace) console.log("only tilde or space:", onlyTildeOrSpace, text);
+    if ((specialSymbols.some(s => text.includes(s)) && !chordAllowed.test(text)) || onlyTildeOrSpace) {
       try {
         span.style.cssText += 'font-family: "Arial Narrow", Arial, "Roboto Condensed", "Helvetica Neue Condensed" !important; color: #3273cd !important;';
       } catch (error) {
