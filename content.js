@@ -27,7 +27,6 @@ function adjustWordLeftToChord() {
     const diff = wordLeft - chordLeft;
     // ずれが20px以上なら、diffの半分だけ近づける。ただし連続するchord間は1.5rem(24px)以上空ける
     if (diff > 20) {
-      console.log('Adjusting word position:', next.textContent.trim(), 'Diff:', diff);
       const minChordGap = 24; // 1.5rem=24px想定
       let allowShift = true;
       let nextChord = next.nextElementSibling;
