@@ -1,6 +1,6 @@
 // コードとして成立するもの（m7-5, m9-5, D#m7-5 なども許可）
 // 複数の括弧付きテンションにも対応
-const chordAllowed = /^[A-G](#|b)?((m|M|maj|min|sus|add|dim|aug)?[0-9]*(?:-[0-9]+)?)(?:\/[A-G](#|b)?)?(?:\([^)]+\)|\{[^}]+\})*$/i;
+const chordAllowed = /^[A-G](#|b)?((m|M|maj|min|sus|add|dim|aug)?[0-9]*(?:-[0-9]+)?)(?:\([^)]+\)|\{[^}]+\})*(?:\/[A-G](#|b)?(?:\([^)]+\)|\{[^}]+\})*)?$/i;
 // 極小フォント設定のデフォルト
 let SMALL_FONT_SIZE = 14;
 let SMALL_FONT_VALIGN = 7;
@@ -65,12 +65,41 @@ function loadSmallFontSettings(callback) {
 // MNoto Sans フォント対応部分
 function replaceMNotoSansText() {
   const chordSpans = document.querySelectorAll('span.chord');
-  chordSpans.forEach(span => {
-    // フォント指定（特殊な記号が含まれる場合、ただしコード名は除外）
-    const text = span.textContent.trim();
-    const specialSymbols = ['-', '=', '>', '≫', '≧', 'n.c', 'N.C'];
+    chordSpans.forEach(span => {
+      // 半角・全角スペースで分割
+      const parts = span.textContent.split(/[ 　]+/).filter(s => s !== '');
+      let fragment = document.createDocumentFragment();
+      parts.forEach((part, idx1) => {
+        // コード部分と非コード部分をさらに分割
+        // 先頭からコード部分を抽出
+        let rest = part;
+        let match = rest.match(/^([A-G](#|b)?((m|M|maj|min|sus|add|dim|aug)?[0-9]*(?:-[0-9]+)?)(?:\([^)]+\)|\{[^}]+\})*(?:\/[A-G](#|b)?(?:\([^)]+\)|\{[^}]+\})*)?)/i);
+        if (match && match[0].length > 0) {
+          // コード部分
+          const codeSpan = document.createElement('span');
+          codeSpan.className = 'chord';
+          codeSpan.textContent = match[0];
+          fragment.appendChild(codeSpan);
+          rest = rest.slice(match[0].length);
+        }
+        // 残りがあれば（記号等）
+        if (rest.length > 0) {
+          const specialSpan = document.createElement('span');
+          specialSpan.className = 'chord';
+          specialSpan.textContent = rest;
+          fragment.appendChild(specialSpan);
+        }
+        // スペース挿入（最後以外）
+        if (idx1 < parts.length - 1) fragment.appendChild(document.createTextNode(' '));
+      });
+      span.replaceWith(fragment);
+  });
 
-    // ~が1つ以上続く場合もナローフォント
+  // 2回目: 分割後の全span.chordに対してフォント指定等の処理
+  const chordSpans2 = document.querySelectorAll('span.chord');
+  chordSpans2.forEach(span => {
+    const text = span.textContent.trim();
+    const specialSymbols = ['-', '=', '>', '≫', '≧', 'n.c', 'N.C','＞'];
     const onlyTildeOrSpace = /^[~\s]+$/.test(text);
     if (onlyTildeOrSpace) console.log("only tilde or space:", onlyTildeOrSpace, text);
     if ((specialSymbols.some(s => text.includes(s)) && !chordAllowed.test(text)) || onlyTildeOrSpace) {
@@ -196,12 +225,13 @@ function processChordBarsAndWordtops() {
     if (text === '|') {
       const prev = element.previousElementSibling;
       if (prev && prev.classList.contains('wordtop')) {
-        prev.textContent += '| ';
+        // 末尾にテキストノードで'| 'を追加
+        prev.appendChild(document.createTextNode('| '));
         element.remove();
       } else {
         const newSpan = document.createElement('span');
         newSpan.className = 'word';
-        newSpan.textContent = ' |';
+        newSpan.appendChild(document.createTextNode(' |'));
         element.replaceWith(newSpan);
       }
     }
@@ -218,14 +248,37 @@ function processChordBarsAndWordtops() {
     if (cleanedText.length > 1 && cleanedText.endsWith('|') && /[^|]/.test(cleanedText) && !cleanedText.startsWith('|')) {
       let prevWord = findPreviousWordElement(wordtop);
       if (prevWord) {
-        let prevText = prevWord.textContent.trim();
-        if (prevText.endsWith('|') || (prevText.length === 1 && prevText === '|')) {
-          prevWord.textContent = prevText.slice(0, -1) + "  " + cleanedText.replace("|", " |");
-        } else {
-          cleanedText = cleanedText.replace("|", "");
-          prevWord.textContent += " " + cleanedText;
+        // 子要素ごとfragmentで移動
+        const fragment = document.createDocumentFragment();
+        while (wordtop.firstChild) {
+          fragment.appendChild(wordtop.firstChild);
         }
-        wordtop.textContent = "| ";
+
+        // 末尾が|のテキストノードのみを部分的に置換し、子要素は絶対に消さない
+        let lastTextNode = null;
+        for (let i = prevWord.childNodes.length - 1; i >= 0; i--) {
+          const node = prevWord.childNodes[i];
+          if (node.nodeType === 3 && /\|\s*$/.test(node.textContent)) {
+            lastTextNode = node;
+            break;
+          }
+        }
+        if (lastTextNode) {
+          // |を除去しスペース2つに置換
+          lastTextNode.textContent = lastTextNode.textContent.replace(/\|\s*$/, '  ');
+          // テキストノードの直後にfragmentをinsert
+          if (lastTextNode.nextSibling) {
+            prevWord.insertBefore(fragment, lastTextNode.nextSibling);
+          } else {
+            prevWord.appendChild(fragment);
+          }
+        } else {
+          prevWord.appendChild(document.createTextNode(' '));
+          prevWord.appendChild(fragment);
+        }
+        // wordtopを完全に空にしてから'| 'を追加
+        while (wordtop.firstChild) wordtop.removeChild(wordtop.firstChild);
+        wordtop.appendChild(document.createTextNode('| '));
       }
     }
   });
