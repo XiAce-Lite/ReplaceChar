@@ -1,6 +1,6 @@
 // コードとして成立するもの（m7-5, m9-5, D#m7-5 なども許可）
 // 複数の括弧付きテンションにも対応
-const chordAllowed = /^[A-G](#|b)?((m|M|maj|min|sus|add|dim|aug)?[0-9]*(?:-[0-9]+)?)(?:\([^)]+\)|\{[^}]+\})*(?:\/[A-G](#|b)?(?:\([^)]+\)|\{[^}]+\})*)?$/i;
+const chordAllowed = /^[A-G](#|b)?((m|M|maj|min|sus[0-9]*|add[0-9]*|dim|aug)?[0-9]*(?:-[0-9]+)?)(?:\([^)]+\)|\{[^}]+\})*(?:\/[A-G](#|b)?(?:\([^)]+\)|\{[^}]+\})*)?$/i;
 // 極小フォント設定のデフォルト
 let SMALL_FONT_SIZE = 14;
 let SMALL_FONT_VALIGN = 7;
@@ -117,6 +117,10 @@ function replaceMNotoSansText() {
     )) {
       span.textContent = span.textContent
         .replace(/\((?:[#b+\-]?\d+(?:[,.][#b+\-]?\d+)*)\)/g, match => {
+          // ()内に7が含まれる場合は7を'に変換し、{}で囲む
+          if (/7/.test(match)) {
+            return '{' + match.slice(1, -1).replace(/7/g, "'") + '}';
+          }
           return '{' + match.slice(1, -1) + '}';
         });
     }
