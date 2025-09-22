@@ -1,9 +1,16 @@
 // コードとして成立するもの（m7-5, m9-5, D#m7-5 なども許可）
 // 複数の括弧付きテンションにも対応
-const chordAllowed = /^[A-G](#|b)?((m|M|maj|min|sus[0-9]*|add[0-9]*|dim|aug)?[0-9]*(?:-[0-9]+)?)(?:\([^)]+\)|\{[^}]+\})*(?:\/[A-G](#|b)?(?:\([^)]+\)|\{[^}]+\})*)?$/i;
+const chordAllowed = /^[A-G](#|b)?((?:m|M|maj|min|sus[0-9]*|add[0-9]*|dim|aug)*[0-9]*(?:-[0-9]+)?)(?:\([^)]+\)|\{[^}]+\})*(?:\/[A-G](#|b)?(?:\([^)]+\)|\{[^}]+\})*)?$/i;
 // 極小フォント設定のデフォルト
 let SMALL_FONT_SIZE = 14;
 let SMALL_FONT_VALIGN = 7;
+
+function replaceMajToM() {
+  document.querySelectorAll('span.chord').forEach(span => {
+    // majをMに置換（大文字・小文字区別なし）
+    span.textContent = span.textContent.replace(/maj/gi, 'M');
+  });
+}
 
 // span.chordの直後のspan.word/wordtopの左位置が大きくずれている場合、近づける
 function adjustWordLeftToChord() {
@@ -65,39 +72,43 @@ function loadSmallFontSettings(callback) {
 // MNoto Sans フォント対応部分
 function replaceMNotoSansText() {
   const chordSpans = document.querySelectorAll('span.chord');
-    chordSpans.forEach(span => {
-      // 半角・全角スペースで分割
-      const parts = span.textContent.split(/[ 　]+/).filter(s => s !== '');
-      let fragment = document.createDocumentFragment();
-      parts.forEach((part, idx1) => {
-        // コード部分と非コード部分をさらに分割
-        // 先頭からコード部分を抽出
-        let rest = part;
-        let match = rest.match(/^([A-G](#|b)?((m|M|maj|min|sus|add|dim|aug)?[0-9]*(?:-[0-9]+)?)(?:\([^)]+\)|\{[^}]+\})*(?:\/[A-G](#|b)?(?:\([^)]+\)|\{[^}]+\})*)?)/i);
-        if (match && match[0].length > 0) {
-          // コード部分
-          const codeSpan = document.createElement('span');
-          codeSpan.className = 'chord';
-          codeSpan.textContent = match[0];
-          fragment.appendChild(codeSpan);
-          rest = rest.slice(match[0].length);
-        }
-        // 残りがあれば（記号等）
-        if (rest.length > 0) {
-          const specialSpan = document.createElement('span');
-          specialSpan.className = 'chord';
-          specialSpan.textContent = rest;
-          fragment.appendChild(specialSpan);
-        }
-        // スペース挿入（最後以外）
-        if (idx1 < parts.length - 1) fragment.appendChild(document.createTextNode(' '));
-      });
-      span.replaceWith(fragment);
+  chordSpans.forEach(span => {
+    // 入れ子判定: chordの中にmale, male2, female, female2が入っていたら何もしない
+    if (span.querySelector('.male, .male2, .female, .female2')) return;
+    // 半角・全角スペースで分割
+    const parts = span.textContent.split(/[ 　]+/).filter(s => s !== '');
+    let fragment = document.createDocumentFragment();
+    parts.forEach((part, idx1) => {
+      // コード部分と非コード部分をさらに分割
+      // 先頭からコード部分を抽出
+      let rest = part;
+      let match = rest.match(/^[A-G](#|b)?((?:m|M|maj|min|sus[0-9]*|add[0-9]*|dim|aug)*[0-9]*(?:-[0-9]+)?)(?:\([^)]+\)|\{[^}]+\})*(?:\/[A-G](#|b)?(?:\([^)]+\)|\{[^}]+\})*)?$/i);
+      if (match && match[0].length > 0) {
+        // コード部分
+        const codeSpan = document.createElement('span');
+        codeSpan.className = 'chord';
+        codeSpan.textContent = match[0];
+        fragment.appendChild(codeSpan);
+        rest = rest.slice(match[0].length);
+      }
+      // 残りがあれば（記号等）
+      if (rest.length > 0) {
+        const specialSpan = document.createElement('span');
+        specialSpan.className = 'chord';
+        specialSpan.textContent = rest;
+        fragment.appendChild(specialSpan);
+      }
+      // スペース挿入（最後以外）
+      if (idx1 < parts.length - 1) fragment.appendChild(document.createTextNode(' '));
+    });
+    span.replaceWith(fragment);
   });
 
   // 2回目: 分割後の全span.chordに対してフォント指定等の処理
   const chordSpans2 = document.querySelectorAll('span.chord');
   chordSpans2.forEach(span => {
+    // 入れ子判定: chordの中にmale, male2, female, female2が入っていたら何もしない
+    if (span.querySelector('.male, .male2, .female, .female2')) return;
     const text = span.textContent.trim();
     const specialSymbols = ['-', '=', '>', '≫', '≧', 'n.c', 'N.C','＞'];
     const onlyTildeOrSpace = /^[~\s]+$/.test(text);
@@ -195,9 +206,11 @@ function findPreviousWordElement(wordtop) {
 
 // chord spanの|処理と wordtop整理を統合
 function processChordBarsAndWordtops() {
-  // 1. span.chordの|置換→word or wordtopに要素を変える＝歌詞の行に小節線を移行する。
   const chordSpans = document.querySelectorAll('span.chord');
   chordSpans.forEach(span => {
+    // 入れ子判定: chordの中にmale, male2, female, female2が入っていたら何もしない
+    if (span.querySelector('.male, .male2, .female, .female2')) return;
+
     const text = span.textContent.trim();
 
     // ->≧=≫ のいずれかのみで構成され、かつコード名として認識されない場合は極小フォント
@@ -295,6 +308,8 @@ function replaceCharMain(adjustChordPos = true, mnotoEnabled = true) {
   processChordBarsAndWordtops();
   if (mnotoEnabled) replaceMNotoSansText(); // MNoto Sans フォント対応とフォント指定
   setFirstSpanToWordtop();
+  // 最後にmaj→M変換
+  replaceMajToM();  
   if (adjustChordPos) adjustWordLeftToChord(); // 位置調整を最後に実施
 }
 
