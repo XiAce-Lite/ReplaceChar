@@ -7,6 +7,11 @@ let SMALL_FONT_VALIGN = 7;
 
 function replaceMajToM() {
   document.querySelectorAll('span.chord').forEach(span => {
+    // 入れ子判定
+    if (Array.from(span.children).length > 0) {
+      //console.log("nested chord found in replaceMajToM:", span);
+      return;
+    } 
     // majをMに置換（大文字・小文字区別なし）
     span.textContent = span.textContent.replace(/maj/gi, 'M');
   });
@@ -74,7 +79,10 @@ function replaceMNotoSansText() {
   const chordSpans = document.querySelectorAll('span.chord');
   chordSpans.forEach(span => {
     // 入れ子判定: chordの中にmale, male2, female, female2が入っていたら何もしない
-    if (span.querySelector('.male, .male2, .female, .female2')) return;
+    if (span.querySelector('.male, .male2, .female, .female2')) {
+      //console.log("nested chord found1:", span.querySelectorAll('.male, .male2, .female, .female2'));
+      return;
+    }
     // 半角・全角スペースで分割
     const parts = span.textContent.split(/[ 　]+/).filter(s => s !== '');
     let fragment = document.createDocumentFragment();
@@ -108,7 +116,10 @@ function replaceMNotoSansText() {
   const chordSpans2 = document.querySelectorAll('span.chord');
   chordSpans2.forEach(span => {
     // 入れ子判定: chordの中にmale, male2, female, female2が入っていたら何もしない
-    if (span.querySelector('.male, .male2, .female, .female2')) return;
+    if (span.querySelector('.male, .male2, .female, .female2')) {
+      //console.log("nested chord found2:", span);
+      return;
+    }
     const text = span.textContent.trim();
     const specialSymbols = ['-', '=', '>', '≫', '≧', 'n.c', 'N.C','＞'];
     const onlyTildeOrSpace = /^[~\s]+$/.test(text);
@@ -209,8 +220,10 @@ function processChordBarsAndWordtops() {
   const chordSpans = document.querySelectorAll('span.chord');
   chordSpans.forEach(span => {
     // 入れ子判定: chordの中にmale, male2, female, female2が入っていたら何もしない
-    if (span.querySelector('.male, .male2, .female, .female2')) return;
-
+    if (span.querySelector('.male, .male2, .female, .female2')) {
+      //console.log("nested chord found3:", span.querySelectorAll('.male, .male2, .female, .female2'));
+      return;
+    }
     const text = span.textContent.trim();
 
     // ->≧=≫ のいずれかのみで構成され、かつコード名として認識されない場合は極小フォント
