@@ -9,7 +9,7 @@ function replaceMajToM() {
   document.querySelectorAll('span.chord').forEach(span => {
     // 入れ子判定
     if (Array.from(span.children).length > 0) {
-      //console.log("nested chord found in replaceMajToM:", span);
+      console.log("nested chord found in replaceMajToM:", span);
       return;
     } 
     // majをMに置換（大文字・小文字区別なし）
@@ -76,13 +76,10 @@ function loadSmallFontSettings(callback) {
 
 // MNoto Sans フォント対応部分
 function replaceMNotoSansText() {
-  const chordSpans = document.querySelectorAll('span.chord');
+  const chordSpans = Array.from(document.querySelectorAll('span.chord')).filter(span =>
+    !span.querySelector('.male, .male2, .female, .female2')
+  );
   chordSpans.forEach(span => {
-    // 入れ子判定: chordの中にmale, male2, female, female2が入っていたら何もしない
-    if (span.querySelector('.male, .male2, .female, .female2')) {
-      //console.log("nested chord found1:", span.querySelectorAll('.male, .male2, .female, .female2'));
-      return;
-    }
     // 半角・全角スペースで分割
     const parts = span.textContent.split(/[ 　]+/).filter(s => s !== '');
     let fragment = document.createDocumentFragment();
@@ -113,13 +110,10 @@ function replaceMNotoSansText() {
   });
 
   // 2回目: 分割後の全span.chordに対してフォント指定等の処理
-  const chordSpans2 = document.querySelectorAll('span.chord');
+  const chordSpans2 = Array.from(document.querySelectorAll('span.chord')).filter(span =>
+    !span.querySelector('.male, .male2, .female, .female2')
+  );
   chordSpans2.forEach(span => {
-    // 入れ子判定: chordの中にmale, male2, female, female2が入っていたら何もしない
-    if (span.querySelector('.male, .male2, .female, .female2')) {
-      //console.log("nested chord found2:", span);
-      return;
-    }
     const text = span.textContent.trim();
     const specialSymbols = ['-', '=', '>', '≫', '≧', 'n.c', 'N.C','＞'];
     const onlyTildeOrSpace = /^[~\s]+$/.test(text);
@@ -217,13 +211,10 @@ function findPreviousWordElement(wordtop) {
 
 // chord spanの|処理と wordtop整理を統合
 function processChordBarsAndWordtops() {
-  const chordSpans = document.querySelectorAll('span.chord');
+  const chordSpans = Array.from(document.querySelectorAll('span.chord')).filter(span =>
+    !span.querySelector('.male, .male2, .female, .female2')
+  );
   chordSpans.forEach(span => {
-    // 入れ子判定: chordの中にmale, male2, female, female2が入っていたら何もしない
-    if (span.querySelector('.male, .male2, .female, .female2')) {
-      //console.log("nested chord found3:", span.querySelectorAll('.male, .male2, .female, .female2'));
-      return;
-    }
     const text = span.textContent.trim();
 
     // ->≧=≫ のいずれかのみで構成され、かつコード名として認識されない場合は極小フォント
@@ -268,7 +259,9 @@ function processChordBarsAndWordtops() {
   });
 
   // 3. 行頭にはみ出た歌詞を、前の行に移動する処理
-  const wordtopElements = document.querySelectorAll('span.wordtop');
+  const wordtopElements = Array.from(document.querySelectorAll('span.wordtop')).filter(span =>
+    !span.querySelector('.male, .male2, .female, .female2')
+  );
   wordtopElements.forEach(wordtop => {
     let cleanedText = cleanText(wordtop.textContent);
     if (cleanedText === '|') {
@@ -278,43 +271,27 @@ function processChordBarsAndWordtops() {
     if (cleanedText.length > 1 && cleanedText.endsWith('|') && /[^|]/.test(cleanedText) && !cleanedText.startsWith('|')) {
       let prevWord = findPreviousWordElement(wordtop);
       if (prevWord) {
-        // 子要素ごとfragmentで移動
-        const fragment = document.createDocumentFragment();
-        while (wordtop.firstChild) {
-          fragment.appendChild(wordtop.firstChild);
-        }
-
-        // 末尾が|のテキストノードのみを部分的に置換し、子要素は絶対に消さない
-        let lastTextNode = null;
-        for (let i = prevWord.childNodes.length - 1; i >= 0; i--) {
-          const node = prevWord.childNodes[i];
-          if (node.nodeType === 3 && /\|\s*$/.test(node.textContent)) {
-            lastTextNode = node;
-            break;
+        //console.log("Moving text from wordtop to previous word:", wordtop.textContent, "->", prevWord.textContent);
+        const parentP = prevWord.closest('p');
+        if (parentP) {
+          // 追加するテキスト
+          let overflowText = cleanedText.replace(/\|+\s*$/, '');
+          let addText = ' ' + overflowText + ' | ';
+          // <p>の最終要素が|のみの場合
+          let lastElem = parentP.lastElementChild;
+          // 末尾が|で終わる場合はaddTextの末尾を|にし、元の末尾の|を除去
+          if (lastElem && lastElem.textContent && /\|\s*$/.test(lastElem.textContent)) {
+            addText = ' ' + overflowText + ' |';
+            lastElem.textContent = lastElem.textContent.replace(/\|\s*$/, '');
           }
+          parentP.appendChild(document.createTextNode(addText));
         }
-        if (lastTextNode) {
-          // |を除去しスペース2つに置換
-          lastTextNode.textContent = lastTextNode.textContent.replace(/\|\s*$/, '  ');
-          // テキストノードの直後にfragmentをinsert
-          if (lastTextNode.nextSibling) {
-            prevWord.insertBefore(fragment, lastTextNode.nextSibling);
-          } else {
-            prevWord.appendChild(fragment);
-          }
-        } else {
-          prevWord.appendChild(document.createTextNode(' '));
-          prevWord.appendChild(fragment);
-        }
-        // wordtopを完全に空にしてから'| 'を追加
         while (wordtop.firstChild) wordtop.removeChild(wordtop.firstChild);
         wordtop.appendChild(document.createTextNode('| '));
       }
     }
   });
 }
-
-
 
 function replaceCharMain(adjustChordPos = true, mnotoEnabled = true) {
   removeEmptyWordtopSpans();
