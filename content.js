@@ -9,7 +9,7 @@ function replaceMajToM() {
   document.querySelectorAll('span.chord').forEach(span => {
     // 入れ子判定
     if (Array.from(span.children).length > 0) {
-      console.log("nested chord found in replaceMajToM:", span);
+      //console.log("nested chord found in replaceMajToM:", span);
       return;
     } 
     // majをMに置換（大文字・小文字区別なし）
