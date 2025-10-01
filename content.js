@@ -118,13 +118,52 @@ function replaceMNotoSansText() {
     const specialSymbols = ['-', '=', '>', '≫', '≧', 'n.c', 'N.C','＞'];
     const onlyTildeOrSpace = /^[~\s]+$/.test(text);
     if (onlyTildeOrSpace) console.log("only tilde or space:", onlyTildeOrSpace, text);
-    if ((specialSymbols.some(s => text.includes(s)) && !chordAllowed.test(text)) || onlyTildeOrSpace) {
+
+    if (specialSymbols.some(s => text.includes(s)) && !chordAllowed.test(text)) {
+      // 記号とコードを分割（例: >Em7-5---> → > Em7-5 --->）
+      // 連続記号をまとめて分割する正規表現
+      const symbolPattern = /([\-=≫≧＞>]+|n\.c|N\.C)/gi;
+      let parts = [];
+      let lastIndex = 0;
+      let match;
+      while ((match = symbolPattern.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+          // 記号以外（コード等）
+          parts.push(text.slice(lastIndex, match.index));
+        }
+        // 記号
+        parts.push(match[0]);
+        lastIndex = symbolPattern.lastIndex;
+      }
+      if (lastIndex < text.length) {
+        parts.push(text.slice(lastIndex));
+      }
+      parts = parts.map(s => s.trim()).filter(s => s);
+
+      // 分割したspan.chordを新たに作成し、元のspanと置換
+      const fragment = document.createDocumentFragment();
+      parts.forEach(part => {
+        const tempSpan = document.createElement('span');
+        tempSpan.className = 'chord';
+        tempSpan.textContent = part;
+        if (chordAllowed.test(part)) {
+          // コード扱いはそのまま
+        } else if (specialSymbols.includes(part) || /^(?:[\-=≫≧＞>]+|n\.c|N\.C)$/i.test(part)) {
+          // specialSymbolsはナローフォント
+          tempSpan.style.cssText += 'font-family: "Arial Narrow", Arial, "Roboto Condensed", "Helvetica Neue Condensed" !important; color: #3273cd !important;';
+        }
+        fragment.appendChild(tempSpan);
+      });
+      span.replaceWith(fragment);
+    } else if (onlyTildeOrSpace) {
+      // onlyTildeOrSpaceの場合は全体にナローフォント
       try {
         span.style.cssText += 'font-family: "Arial Narrow", Arial, "Roboto Condensed", "Helvetica Neue Condensed" !important; color: #3273cd !important;';
       } catch (error) {
         console.error('Style setting failed:', error);
       }
     }
+
     // MNoto Sans フォント対応
     if (!(
       span.classList.contains('chord') &&
