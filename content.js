@@ -115,14 +115,14 @@ function replaceMNotoSansText() {
   );
   chordSpans2.forEach(span => {
     const text = span.textContent.trim();
-    const specialSymbols = ['-', '=', '>', '≫', '≧', 'n.c', 'N.C','＞'];
+    const specialSymbols = ['-', '=', '>', '≫', '≧','!', 'n.c', 'N.C','＞'];
     const onlyTildeOrSpace = /^[~\s]+$/.test(text);
     if (onlyTildeOrSpace) console.log("only tilde or space:", onlyTildeOrSpace, text);
 
     if (specialSymbols.some(s => text.includes(s)) && !chordAllowed.test(text)) {
       // 記号とコードを分割（例: >Em7-5---> → > Em7-5 --->）
       // 連続記号をまとめて分割する正規表現
-      const symbolPattern = /([\-=≫≧＞>]+|n\.c|N\.C)/gi;
+      const symbolPattern = /([\-=≫≧＞>!]+|n\.c|N\.C)/gi;
       let parts = [];
       let lastIndex = 0;
       let match;
@@ -148,7 +148,7 @@ function replaceMNotoSansText() {
         tempSpan.textContent = part;
         if (chordAllowed.test(part)) {
           // コード扱いはそのまま
-        } else if (specialSymbols.includes(part) || /^(?:[\-=≫≧＞>]+|n\.c|N\.C)$/i.test(part)) {
+        } else if (specialSymbols.includes(part) || /^(?:[\-=≫≧＞>!]+|n\.c|N\.C)$/i.test(part)) {
           // specialSymbolsはナローフォント
           tempSpan.style.cssText += 'font-family: "Arial Narrow", Arial, "Roboto Condensed", "Helvetica Neue Condensed" !important; color: #3273cd !important;';
         }
@@ -257,7 +257,7 @@ function processChordBarsAndWordtops() {
     const text = span.textContent.trim();
 
     // ->≧=≫ のいずれかのみで構成され、かつコード名として認識されない場合は極小フォント
-    if (/^[\-≧=≫>]+$/.test(text) && !chordAllowed.test(text)) {
+    if (/^[\-≧=≫>!]+$/.test(text) && !chordAllowed.test(text)) {
       // 極小フォント＋指定px上に表示
       span.style.setProperty('font-size', SMALL_FONT_SIZE + 'px', 'important');
       span.style.setProperty('vertical-align', SMALL_FONT_VALIGN + 'px', 'important');
