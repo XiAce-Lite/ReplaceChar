@@ -192,7 +192,10 @@ function setFirstSpanToWordtop() {
       firstSpan.classList.remove('word'); // もし word が付いていたら削除
       // 先頭の半角スペースを除去
       if (typeof firstSpan.textContent === 'string') {
-        firstSpan.textContent = firstSpan.textContent.replace(/^\s+/, '');
+        let txt = firstSpan.textContent.replace(/^\s+/, '');
+        // 単独の"|"は必ず"| "にする
+        if (txt === '|') txt = '| ';
+        firstSpan.textContent = txt;
       }
     }
   });
