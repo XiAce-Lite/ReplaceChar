@@ -1,3 +1,4 @@
 .vscode/extensions.json
 ReplaceChar.code-workspace
 jsconfig.json
+stylebot_backup*.json
